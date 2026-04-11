@@ -229,9 +229,6 @@
             <xacro:unitree_d1_gazebo parent="${parent}" prefix="${prefix}" use_camera="${use_camera}" />
         </xacro:if>
 
-        <xacro:include filename="$(find unitree_d1_description)/urdf/ros2_control/unitree_d1_ros2_control.xacro" />
-        <xacro:unitree_d1_ros2_control prefix="${prefix}" sim_gazebo="${sim_gazebo}" />
-
     </xacro:macro>
 
 </robot>

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="unitree_d1_ros2_control" params="prefix sim_gazebo" >
+  <xacro:macro name="unitree_d1_ros2_control" params="prefix sim_gazebo gripper:=d1_2f" >
 
     <ros2_control name="ArmHardwareInterface" type="system">
         <xacro:if value="${sim_gazebo}">
@@ -12,10 +12,10 @@
             <hardware>
                 <plugin>d1_hardware_interface/D1HardwareInterface</plugin>
                 <!-- <param name="topic_sufix">asda</param> -->
-                <!-- <xacro:if value="${gripper == 'z1_1f'}">
-                    <param name="gripper">true</param>
-                </xacro:if>
-                <xacro:unless value="${gripper == 'z1_1f'}">
+                <!-- <xacro:if value="${gripper == 'd1_2f'}"> -->
+                <param name="gripper">${gripper}</param>
+                <!-- </xacro:if> -->
+                <!-- <xacro:unless value="${gripper == 'z1_1f'}">
                     <param name="gripper">false</param>
                 </xacro:unless> -->
             </hardware>
@@ -116,6 +116,15 @@
             <!-- <state_interface name="velocity"/>
             <state_interface name="effort"/> -->
         </joint>
+
+        <!-- Default Gripper -->
+        <xacro:if value="${gripper == 'd1_2f' and not sim_gazebo}">
+            <joint name="${prefix}joint_L">
+                <command_interface name="position" />
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+        </xacro:if>
     </ros2_control>
 
   </xacro:macro>

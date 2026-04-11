@@ -16,6 +16,7 @@
         <joint name="<robot_prefix>joint_3"/>
         <joint name="<robot_prefix>joint_5"/>
         <joint name="<robot_prefix>joint_6"/>
+        <joint name="<robot_prefix>tool_frame_joint"/>
     </group>
     <group name="gripper">
         <joint name="<robot_prefix>gripper_base_joint"/>
@@ -54,7 +55,7 @@
     </group_state>
 
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="arm" parent_link="<robot_prefix>Link6" group="arm"/>
+    <end_effector name="gripper" parent_link="<robot_prefix>tool_frame" group="gripper"/>
     <!--PASSIVE JOINT: Purpose: this element is used to mark joints that are not actuated-->
     <passive_joint name="<robot_prefix>joint_R"/>
 

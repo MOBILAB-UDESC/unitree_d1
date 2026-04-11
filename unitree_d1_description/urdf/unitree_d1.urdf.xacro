@@ -38,4 +38,7 @@
         </xacro:load_gripper>
     </xacro:unless>
 
+    <xacro:include filename="$(find unitree_d1_description)/urdf/ros2_control/unitree_d1_ros2_control.xacro" />
+    <xacro:unitree_d1_ros2_control prefix="$(arg prefix)" sim_gazebo="$(arg sim_gazebo)" gripper="$(arg gripper)"/>
+
 </robot>
