@@ -6,6 +6,18 @@ static const rclcpp::Logger LOGGER = rclcpp::get_logger("D1HardwareInterface");
 
 namespace d1_hardware_interface
 {
+    double D1HardwareInterface::mm_to_deg(const double joint_mm)
+    {
+        double m = 90.0 / 0.033;
+        double joint_deg = m * (joint_mm + 0.009) - 30.0;
+        return joint_deg;
+    }
+    double D1HardwareInterface::deg_to_mm(const double joint_deg)
+    {
+        double m = 0.033 / 90.0;
+        double joint_mm = m * (joint_deg + 30.0) - 0.009;
+        return joint_mm;
+    }
 
     std::string D1HardwareInterface::get_param_value(const std::string & param_name, const std::string & default_value)
     {
@@ -22,7 +34,15 @@ namespace d1_hardware_interface
     {
         ServoAngleData servos_angle_commands_;
 
-        double init_commands_[6] = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0};
+        std::vector<double> init_commands_;
+
+        if (with_gripper) {
+          init_commands_ = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0, 11.0};                  //////////// ALTEREI VER COM O NILTON
+        }
+        else{
+          init_commands_ = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0};
+        }
+
 
         for (uint i = 0; i < n_joints_; ++i) {
             joint_commands_[i].position = (init_commands_[i] * M_PI) / 180.0; // rads
@@ -31,7 +51,7 @@ namespace d1_hardware_interface
 
         servo_angle_publisher_->Write(servos_angle_commands_, 0);
 
-        sleep(2);
+        // sleep(2);
 
         return;
     }
@@ -49,6 +69,14 @@ namespace d1_hardware_interface
         info_ = info;
         joints_ = info_.joints;
         n_joints_ = joints_.size();
+        std::string gripper = get_param_value("gripper", "");
+
+        std::cout << "Gripper: " << gripper << std::endl;
+        std::cout << "N joints: " << n_joints_ << std::endl;
+
+        if (gripper != "") {
+            with_gripper = true;
+        }
 
         // std::cout << "TYpe: " << typeid(joints_).name() << std::endl;
 
@@ -96,7 +124,14 @@ namespace d1_hardware_interface
                     joints_[i].name, hardware_interface::HW_IF_POSITION, &joint_states_[i].position
                 )
             );
+
+            state_interface.emplace_back(
+                hardware_interface::StateInterface(
+                    joints_[i].name, hardware_interface::HW_IF_VELOCITY, &joint_states_[i].velocity
+                )
+            );
         }
+
 
         return state_interface;
     }
@@ -119,11 +154,13 @@ namespace d1_hardware_interface
 
     CallbackReturn D1HardwareInterface::on_activate(const rclcpp_lifecycle::State & previous_state)
     {
+        (void) previous_state;
         return CallbackReturn::SUCCESS;
     }
 
     CallbackReturn D1HardwareInterface::on_deactivate(const rclcpp_lifecycle::State & previous_state)
     {
+        (void) previous_state;
 
         to_base();
 
@@ -142,12 +179,19 @@ namespace d1_hardware_interface
 
     return_type D1HardwareInterface::read(const rclcpp::Time & time, const rclcpp::Duration & period)
     {
+        (void) time;
+        (void) period;
         ServoAngleData msg;
 
         std::memcpy(&msg, &servos_angle_data_, sizeof(msg));
 
         for (uint i = 0; i < n_joints_; ++i) {
-            joint_states_[i].position = msg.angles()[i] * DEG_TO_RAD; // rad
+            if (i < 6) {
+              joint_states_[i].position = msg.angles()[i] * DEG_TO_RAD; // rad
+            } else {
+              joint_states_[i].position = this->deg_to_mm(msg.angles()[i]); // rad
+            }
+            joint_states_[i].velocity = 0.0;
         }
 
         return return_type::OK;
@@ -155,6 +199,8 @@ namespace d1_hardware_interface
 
     return_type D1HardwareInterface::write(const rclcpp::Time & time, const rclcpp::Duration & period)
     {
+        (void) time;
+        (void) period;
 
         // auto now = std::chrono::steady_clock::now();
         // auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_write_time_);
@@ -168,7 +214,12 @@ namespace d1_hardware_interface
         ServoAngleData servos_angle_commands_;
 
         for (uint i = 0; i < n_joints_; ++i) {
-            servos_angle_commands_.angles()[i] = joint_commands_[i].position * RAD_TO_DEG; // degrees
+            if (i < 6) {
+              servos_angle_commands_.angles()[i] = joint_commands_[i].position * RAD_TO_DEG; // degrees
+            } else {
+              servos_angle_commands_.angles()[i] = this->mm_to_deg(joint_commands_[i].position); // degrees
+            }
+            // servos_angle_commands_.angles()[i] = joint_commands_[i].position * RAD_TO_DEG; // degrees
             // RCLCPP_INFO(LOGGER, "Joint %u: %.3f", i+1, servos_angle_commands_.angles()[i]);
         }
 

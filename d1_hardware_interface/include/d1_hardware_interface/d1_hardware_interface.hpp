@@ -29,6 +29,7 @@ namespace d1_hardware_interface
 struct Joint_State
 {
     double position;
+    double velocity;
 };
 
 struct Joint_Command
@@ -74,15 +75,16 @@ class D1HardwareInterface : public hardware_interface::SystemInterface
         hardware_interface::HardwareInfo info_;
         std::vector<hardware_interface::ComponentInfo> joints_;
         uint n_joints_;
+        bool with_gripper = false;
 
         // timers
         // std::chrono::steady_clock::time_point last_write_time_;
         // const std::chrono::milliseconds write_period_{20};
 
         // base DDS topics
-        const std::string get_angle_topic_ = "servo_angle_data";
-        const std::string set_angle_topic_ = "servo_angle_command";
-        const std::string set_power_topic_ = "deactivate_servos";
+        const std::string get_angle_topic_ = "servo_angle_data_1";
+        const std::string set_angle_topic_ = "servo_angle_command_1";
+        const std::string set_power_topic_ = "deactivate_servos_1";
 
         ServoAngleData servos_angle_data_; // msg
         ChannelSubscriberPtr<ServoAngleData> servo_angle_subscriber_;
@@ -90,6 +92,8 @@ class D1HardwareInterface : public hardware_interface::SystemInterface
         ChannelPublisherPtr<ServoPower> servo_power_publisher_;
 
         // Create and assign parameters
+        double mm_to_deg(const double joint_mm);
+        double deg_to_mm(const double joint_deg);
         std::string get_param_value(const std::string & param_name, const std::string & default_value);
         void to_base(); // Move the robot to initial position
 
