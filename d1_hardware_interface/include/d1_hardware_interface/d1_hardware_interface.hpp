@@ -1,6 +1,9 @@
 #ifndef UNITREE_D1_HW_INTERFACE_HPP__
 #define UNITREE_D1_HW_INTERFACE_HPP__
 
+#include <mutex>
+#include <thread>
+
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
@@ -16,6 +19,10 @@
 
 #include <unitree/robot/channel/channel_publisher.hpp>
 #include <unitree/robot/channel/channel_subscriber.hpp>
+
+#define GetServoAnglesTopic "servo_angle_data"
+#define SetServoAnglesTopic "servo_angle_command"
+#define DeactivateServosTopic "deactivate_servos"
 
 using hardware_interface::CallbackReturn;
 using hardware_interface::return_type;
@@ -39,64 +46,74 @@ struct Joint_Command
 
 class D1HardwareInterface : public hardware_interface::SystemInterface
 {
-    public:
-        RCLCPP_SHARED_PTR_DEFINITIONS(D1HardwareInterface)
+public:
+    RCLCPP_SHARED_PTR_DEFINITIONS(D1HardwareInterface)
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-        D1_HARDWARE_INTERFACE_PUBLIC
-        return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+    D1_HARDWARE_INTERFACE_PUBLIC
+    return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-    private:
-        double RAD_TO_DEG = 180.0 / M_PI;
-        double DEG_TO_RAD = M_PI / 180.0;
-        std::mutex state_mutex_;
+private:
 
-        std::vector<Joint_State> joint_states_;
-        std::vector<Joint_Command> joint_commands_;
+    void io_loop();
 
-        // joints info holder
-        hardware_interface::HardwareInfo info_;
-        std::vector<hardware_interface::ComponentInfo> joints_;
-        uint n_joints_;
-        bool with_gripper = false;
+    void to_base(); // Move the robot to initial position
 
-        // timers
-        // std::chrono::steady_clock::time_point last_write_time_;
-        // const std::chrono::milliseconds write_period_{20};
+    // Create and assign parameters
+    std::string get_param_value(const std::string & param_name, const std::string & default_value);
 
-        // base DDS topics
-        const std::string get_angle_topic_ = "servo_angle_data_1";
-        const std::string set_angle_topic_ = "servo_angle_command_1";
-        const std::string set_power_topic_ = "deactivate_servos_1";
+    double mm_to_deg(const double joint_mm);
 
-        ServoAngleData servos_angle_data_; // msg
-        ChannelSubscriberPtr<ServoAngleData> servo_angle_subscriber_;
-        ChannelPublisherPtr<ServoAngleData> servo_angle_publisher_;
-        ChannelPublisherPtr<ServoPower> servo_power_publisher_;
+    double deg_to_mm(const double joint_deg);
 
-        // Create and assign parameters
-        double mm_to_deg(const double joint_mm);
-        double deg_to_mm(const double joint_deg);
-        std::string get_param_value(const std::string & param_name, const std::string & default_value);
-        void to_base(); // Move the robot to initial position
+    double RAD_TO_DEG = 180.0 / M_PI;
+    double DEG_TO_RAD = M_PI / 180.0;
+
+    std::vector<Joint_State> joint_states_;
+    std::vector<Joint_Command> joint_commands_;
+
+    // joints info holder
+    hardware_interface::HardwareInfo info_;
+    std::vector<hardware_interface::ComponentInfo> joints_;
+    uint n_joints_;
+    bool with_gripper = false;
+
+    // base DDS topics
+    const std::string get_angle_topic_ = "servo_angle_data";
+    const std::string set_angle_topic_ = "servo_angle_command";
+    const std::string set_power_topic_ = "deactivate_servos";
+
+    ServoAngleData servos_angle_data_; // msg
+    ChannelSubscriberPtr<ServoAngleData> servo_angle_subscriber_;
+    ChannelPublisherPtr<ServoAngleData> servo_angle_publisher_;
+    ChannelPublisherPtr<ServoPower> servo_power_publisher_;
+
+    // MULTI-THREAD
+    std::thread thread_;
+    std::vector<Joint_State> state_buffer_;
+    std::vector<Joint_Command> cmd_buffer_;
+    std::mutex state_mutex_;
+    std::mutex cmd_mutex_;
 
 };
-} // namespace d1_hardware_interface
+
+}  // namespace d1_hardware_interface
+
 #endif  // UNITREE_D1_HW_INTERFACE_HPP__
