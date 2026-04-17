@@ -1,6 +1,7 @@
 #ifndef UNITREE_D1_HW_INTERFACE_HPP__
 #define UNITREE_D1_HW_INTERFACE_HPP__
 
+#include <atomic>
 #include <mutex>
 #include <thread>
 
@@ -71,9 +72,6 @@ public:
     return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-
-    void io_loop();
-
     void to_base(); // Move the robot to initial position
 
     // Create and assign parameters
@@ -104,14 +102,6 @@ private:
     ChannelSubscriberPtr<ServoAngleData> servo_angle_subscriber_;
     ChannelPublisherPtr<ServoAngleData> servo_angle_publisher_;
     ChannelPublisherPtr<ServoPower> servo_power_publisher_;
-
-    // MULTI-THREAD
-    std::thread thread_;
-    std::vector<Joint_State> state_buffer_;
-    std::vector<Joint_Command> cmd_buffer_;
-    std::mutex state_mutex_;
-    std::mutex cmd_mutex_;
-
 };
 
 }  // namespace d1_hardware_interface

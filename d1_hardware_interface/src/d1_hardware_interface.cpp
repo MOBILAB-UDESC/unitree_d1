@@ -37,16 +37,20 @@ void D1HardwareInterface::to_base()
     std::vector<double> init_commands_;
 
     if (with_gripper) {
-        init_commands_ = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0, 11.0};                  //////////// ALTEREI VER COM O NILTON
+        init_commands_ = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0, 11.0};
     }
     else{
         init_commands_ = {-88.0, -88.0, 88.0, -0.0, 0.0, -0.0};
     }
 
-
     for (uint i = 0; i < n_joints_; ++i) {
-        joint_commands_[i].position = (init_commands_[i] * M_PI) / 180.0; // rads
         servos_angle_commands_.angles()[i] = init_commands_[i]; // degrees
+        servos_angle_commands_.delays_ms()[i] = 120;
+        if (i < 6) {
+            joint_commands_[i].position = init_commands_[i] * DEG_TO_RAD;
+        } else {
+            joint_commands_[i].position = deg_to_mm(init_commands_[i]);
+        }
     }
 
     servo_angle_publisher_->Write(servos_angle_commands_, 0);
@@ -78,8 +82,6 @@ CallbackReturn D1HardwareInterface::on_init(const hardware_interface::HardwareIn
         with_gripper = true;
     }
 
-    // std::cout << "TYpe: " << typeid(joints_).name() << std::endl;
-
     std::string network_interface = get_param_value("network_interface", "");
     std::string topic_sufix = get_param_value("topic_sufix", "");
 
@@ -88,8 +90,6 @@ CallbackReturn D1HardwareInterface::on_init(const hardware_interface::HardwareIn
 
     joint_states_.resize(n_joints_);
     joint_commands_.resize(n_joints_);
-    state_buffer_.resize(n_joints_);
-    cmd_buffer_.resize(n_joints_);
 
     ChannelFactory::Instance()->Init(0, network_interface);
 
@@ -110,15 +110,12 @@ CallbackReturn D1HardwareInterface::on_init(const hardware_interface::HardwareIn
 
     to_base();
 
-    // last_write_time_ = std::chrono::steady_clock::now();
-
     return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn D1HardwareInterface::on_activate(const rclcpp_lifecycle::State & previous_state)
 {
     (void) previous_state;
-    thread_ = std::thread([this]{ this->io_loop(); });
     return CallbackReturn::SUCCESS;
 }
 
@@ -126,15 +123,11 @@ CallbackReturn D1HardwareInterface::on_deactivate(const rclcpp_lifecycle::State 
 {
     (void) previous_state;
 
-    if (thread_.joinable()) {
-        thread_.join();
-    }
-
     to_base();
 
     ServoPower servos_power_command_;
     for (uint i = 0; i < n_joints_; ++i) {
-        servos_power_command_.power()[i] = 200; // mW
+        servos_power_command_.power()[i] = 500; // mW
     }
 
     RCLCPP_INFO(LOGGER, "Deactivating servos.");
@@ -188,19 +181,16 @@ return_type D1HardwareInterface::read(const rclcpp::Time & time, const rclcpp::D
     (void) period;
     ServoAngleData msg;
 
-    // std::memcpy(&msg, &servos_angle_data_, sizeof(msg));
+    std::memcpy(&msg, &servos_angle_data_, sizeof(msg));
 
-    // for (uint i = 0; i < n_joints_; ++i) {
-    //     if (i < 6) {
-    //       joint_states_[i].position = msg.angles()[i] * DEG_TO_RAD; // rad
-    //     } else {
-    //       joint_states_[i].position = this->deg_to_mm(msg.angles()[i]); // rad
-    //     }
-    //     joint_states_[i].velocity = 0.0;
-    // }
-
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    joint_states_ = state_buffer_;
+    for (uint i = 0; i < n_joints_; ++i) {
+        if (i < 6) {
+          joint_states_[i].position = msg.angles()[i] * DEG_TO_RAD; // rad
+        } else {
+          joint_states_[i].position = this->deg_to_mm(msg.angles()[i]); // rad
+        }
+        joint_states_[i].velocity = 0.0;
+    }
 
     return return_type::OK;
 }
@@ -210,48 +200,20 @@ return_type D1HardwareInterface::write(const rclcpp::Time & time, const rclcpp::
     (void) time;
     (void) period;
 
-    // ServoAngleData servos_angle_commands_;
+    ServoAngleData servos_angle_commands_;
 
-    // for (uint i = 0; i < n_joints_; ++i) {
-    //     if (i < 6) {
-    //       servos_angle_commands_.angles()[i] = joint_commands_[i].position * RAD_TO_DEG; // degrees
-    //     } else {
-    //       servos_angle_commands_.angles()[i] = this->mm_to_deg(joint_commands_[i].position); // degrees
-    //     }
-    // }
+    for (uint i = 0; i < n_joints_; ++i) {
+        if (i < 6) {
+          servos_angle_commands_.angles()[i] = joint_commands_[i].position * RAD_TO_DEG; // degrees
+        } else {
+          servos_angle_commands_.angles()[i] = this->mm_to_deg(joint_commands_[i].position); // degrees
+        }
+        servos_angle_commands_.delays_ms()[i] = 120;
+    }
 
-    // servo_angle_publisher_->Write(servos_angle_commands_, 0);
-
-    std::lock_guard<std::mutex> lock(cmd_mutex_);
-    cmd_buffer_ = joint_commands_;
+    servo_angle_publisher_->Write(servos_angle_commands_, 0);
 
     return return_type::OK;
-}
-
-void D1HardwareInterface::io_loop()
-{
-    // std::vector<double> last_position(n_joints_, 0.0);
-    ServoAngleData cmd_msg;
-    {
-        std::lock_guard<std::mutex> lock(cmd_mutex_);
-        for (uint i = 0; i < n_joints_; ++i) {
-            cmd_msg.angles()[i] = (i < 6)
-                    ? cmd_buffer_[i].position * RAD_TO_DEG
-                    : mm_to_deg(cmd_buffer_[i].position);
-        }
-    }
-
-    servo_angle_publisher_->Write(cmd_msg, 0);
-
-    ServoAngleData state_msg;
-    std::memcpy(&state_msg, &servos_angle_data_, sizeof(state_msg));
-    {
-        std::lock_guard<std::mutex> lock(state_mutex_);
-        for (uint i = 0; i < n_joints_; ++i) {
-            state_buffer_[i].position = state_msg.angles()[i];
-            state_buffer_[i].velocity = 0.0;
-        }
-    }
 }
 
 }
