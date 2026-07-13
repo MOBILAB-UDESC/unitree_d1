@@ -7,7 +7,10 @@
     <xacro:arg name="sim_gazebo" default="true" />
     <xacro:arg name="use_camera" default="false" />
     <xacro:arg name="prefix" default=""/>
+    <xacro:arg name="namespace" default="" />
     <xacro:arg name="gripper" default="" />
+    <xacro:arg name="gripper_xyz" default="0.0 0.0 0.0" />
+    <xacro:arg name="gripper_rpy" default="0.0 0.0 0.0" />
 
     <xacro:include filename="$(find unitree_d1_description)/urdf/camera/_materials.urdf.xacro" />
     <xacro:include filename="$(find unitree_d1_description)/urdf/unitree_d1_macro.urdf.xacro" />
@@ -17,6 +20,7 @@
     <xacro:load_arm
             parent="world"
             prefix="$(arg prefix)"
+            namespace="$(arg namespace)"
             sim_gazebo="$(arg sim_gazebo)"
             gripper="$(arg gripper)"
             use_camera="$(arg use_camera)">
@@ -34,7 +38,7 @@
             sim_gazebo="$(arg sim_gazebo)">
 
             <!-- <origin rpy="-1.5714 -1.5708 0" xyz="-0.0056012 -0.029636 0.0706" /> -->
-            <origin rpy="0 0 0" xyz="0 0 0" />
+            <origin rpy="$(arg gripper_rpy)" xyz="$(arg gripper_xyz)" />
         </xacro:load_gripper>
     </xacro:unless>
 

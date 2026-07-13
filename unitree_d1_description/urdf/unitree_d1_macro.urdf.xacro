@@ -7,7 +7,7 @@
     <!-- Propagate last link name information because it is the gripper's parent link -->
     <xacro:property name="last_arm_link" value="Link6" />
 
-    <xacro:macro name="load_arm" params="*origin parent prefix sim_gazebo gripper use_camera">
+    <xacro:macro name="load_arm" params="*origin parent prefix sim_gazebo gripper use_camera namespace">
         <joint name="${prefix}base_joint" type="fixed">
             <xacro:insert_block name="origin" />
             <parent link="${parent}" />
@@ -226,7 +226,7 @@
 
         <xacro:if value="${sim_gazebo}">
             <xacro:include filename="$(find unitree_d1_description)/urdf/gz/unitree_d1.gazebo.xacro" />
-            <xacro:unitree_d1_gazebo parent="${parent}" prefix="${prefix}" use_camera="${use_camera}" />
+            <xacro:unitree_d1_gazebo parent="${parent}" prefix="${prefix}" use_camera="${use_camera}" namespace="${namespace}" />
         </xacro:if>
 
     </xacro:macro>

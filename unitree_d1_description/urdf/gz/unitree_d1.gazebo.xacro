@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:macro name="unitree_d1_gazebo" params="parent prefix use_camera">
+  <xacro:macro name="unitree_d1_gazebo" params="parent prefix use_camera namespace">
 
     <gazebo reference="${prefix}base_link">
         <material>Gazebo/Dark_Grey</material>
@@ -59,6 +59,9 @@
       <gazebo>
         <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
           <parameters>$(find arms_bringup)/config/ros2_control.yaml</parameters>
+            <ros>
+                <namespace>${namespace}</namespace>
+            </ros>
         </plugin>
       </gazebo>
     </xacro:if>

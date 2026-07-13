@@ -33,8 +33,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
         <joint name="${prefix}joint_2">
             <command_interface name="position">
@@ -49,8 +48,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
         <joint name="${prefix}joint_3">
             <command_interface name="position">
@@ -65,8 +63,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
         <joint name="${prefix}joint_4">
             <command_interface name="position">
@@ -81,8 +78,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
         <joint name="${prefix}joint_5">
             <command_interface name="position">
@@ -97,8 +93,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
         <joint name="${prefix}joint_6">
             <command_interface name="position">
@@ -113,8 +108,7 @@
             <xacro:unless value="${sim_gazebo}">
                 <state_interface name="position" />
             </xacro:unless>
-            <!-- <state_interface name="velocity"/>
-            <state_interface name="effort"/> -->
+            <state_interface name="velocity" />
         </joint>
 
         <!-- Default Gripper -->
